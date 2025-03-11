@@ -1,69 +1,89 @@
 import streamlit as st
-import folium
 import pandas as pd
+import geopy.distance
+import openai
+import folium
 from streamlit_folium import st_folium
+from getpass import getpass
 
-"""
-# Data Description
-This dataset contains information about companies registered by the Business Integrity Commission (BIC) to collect and dispose of waste materials resulting exclusively from demolition, construction, alterations, or excavations in New York City.
-Each record represents an entity approved to operate under the classification of Class 2 C&D Registrants. The information is updated daily and has been publicly available since April 4, 2017.
+# Cargar datos desde los CSV (ajustar nombres de archivos si es necesario)
+school_df = pd.read_csv("school.csv")
+demolition_df = pd.read_csv("demolition.csv")
+pothole_df = pd.read_csv("pothole.csv")
 
-# Dictionary Column
-| **Column Name**      | **Description**                                          | **API Field Name**    | **Data Type**        |
-|----------------------|----------------------------------------------------------|----------------------|----------------------|
-| **CREATED**          | Timestamp of when data is processed for OpenData         | `created`            | Floating Timestamp  |
-| **BIC NUMBER**       | Unique BIC file number assigned to the entity            | `bic_number`         | Text                |
-| **ACCOUNT NAME**     | Name of the entity                                       | `account_name`       | Text                |
-| **TRADE NAME**       | Name under which the entity operates                     | `trade_name`         | Text                |
-| **ADDRESS**          | Mailing address of the entity                            | `address`            | Text                |
-| **CITY**            | City where the entity is located                         | `city`               | Text                |
-| **STATE**            | State where the entity is located                        | `state`              | Text                |
-| **POSTCODE**        | Postal code of the entity’s mailing address              | `postcode`           | Text                |
-| **PHONE**           | Phone number of the entity                               | `phone`              | Text                |
-| **EMAIL**           | Email contact of the entity                              | `email`              | Text                |
-| **APPLICATION TYPE** | Type of application filed by the entity                  | `application_type`   | Text                |
-| **DISPOSITION DATE** | Date of resolution of the application                   | `disposition_date`   | Text                |
-| **EFFECTIVE DATE**   | Date when the registration becomes effective             | `effective_date`     | Text                |
-| **EXPIRATION DATE**  | Date when the registration expires                       | `expiration_date`    | Text                |
-| **RENEWAL**         | Indicates if the registration is renewable               | `renewal`            | Checkbox            |
-| **EXPORT DATE**      | Date when the data was last exported by BIC              | `export_date`        | Floating Timestamp  |
-| **LATITUDE**         | Latitude of the mailing address                          | `latitude`           | Text                |
-| **LONGITUDE**        | Longitude of the mailing address                         | `longitude`          | Text                |
-| **COMMUNITY BOARD**  | Community board based on the mailing address            | `community_board`    | Text                |
-| **COUNCIL DISTRICT** | Council district where the entity is located            | `council_district`   | Text                |
-| **CENSUS TRACT**     | Census tract associated with the mailing address        | `census_tract`      | Text                |
-| **BIN**             | Building Identification Number (BIN)                     | `bin`                | Text                |
-| **BBL**             | Borough-Block-Lot (BBL) number                           | `bbl`                | Text                |
-| **NTA**             | Neighborhood Tabulation Area                             | `nta`                | Text                |
-| **BORO**            | Borough where the entity is located                      | `boro`               | Text                |
-"""
+# Configuración de API Key de OpenAI
+api_key = getpass("Enter API key: ")
+openai.api_key = api_key
 
 
-# Load the CSV data file
-def load_data(path):
-    return pd.read_csv(path)
+# Encontrar la ubicación más cercana
+def find_nearest_location(point, df, type_name):
+    nearest_name, nearest_address = None, None
+    min_distance = float("inf")
+
+    for _, row in df.iterrows():
+        location = (row["latitude"], row["longitude"])
+        distance = geopy.distance.distance(point, location).m
+
+        if distance < min_distance:
+            min_distance = distance
+            nearest_name = row.get("account_name", row.get("school_name", "Unknown"))
+            nearest_address = row.get("address", row.get("building_address", row.get("incident_address", "Unknown")))
+
+    return nearest_name, nearest_address, min_distance, type_name
 
 
-DATA_PATH = "filtered_data_march_clean.csv"
-df = load_data(DATA_PATH)
+# Generar mensaje de advertencia
+def generate_warning_message(location_type, address, name):
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You are an assistant that warns delivery drivers about hazards."},
+            {"role": "user",
+             "content": f"Generate a warning message for a delivery driver approaching {address}. There is an active {location_type} site operated by {name}. The message should be clear and cautionary."}
+        ]
+    )
+    return response["choices"][0]["message"]["content"]
 
 
-# Create a map focused on New York City with a construction-related icon
-def create_map(data):
-    nyc_coordinates = [40.7128, -74.0060]  # Center of New York City
-    mapa = folium.Map(location=nyc_coordinates, zoom_start=12, tiles="OpenStreetMap")
+# Crear la aplicación Streamlit
+st.title("Sistema de Advertencia para Conductores")
+st.write("Haga clic en el mapa para seleccionar una ubicación y recibir advertencias de zonas de riesgo cercanas.")
 
-    for _, row in data.iterrows():
-        folium.Marker(
-            location=[row['latitude'], row['longitude']],
-            popup=f"<b>{row['account_name']}</b><br>Lat: {row['latitude']}, Lon: {row['longitude']}",
-            tooltip=f"{row['account_name']} ({row['latitude']}, {row['longitude']})",
-            icon=folium.Icon(icon="wrench", prefix="fa", color="orange")
-        ).add_to(mapa)
+# Crear mapa con folium
+base_location = (40.700000, -73.900000)
+map_ = folium.Map(location=base_location, zoom_start=12)
 
-    return mapa
+# Agregar puntos de datos
+for _, row in school_df.iterrows():
+    folium.Marker([row["latitude"], row["longitude"]], tooltip=row["school_name"],
+                  icon=folium.Icon(color="blue")).add_to(map_)
+for _, row in demolition_df.iterrows():
+    folium.Marker([row["latitude"], row["longitude"]], tooltip=row["account_name"],
+                  icon=folium.Icon(color="red")).add_to(map_)
+for _, row in pothole_df.iterrows():
+    folium.Marker([row["latitude"], row["longitude"]], tooltip="Pothole", icon=folium.Icon(color="orange")).add_to(map_)
 
+# Mostrar el mapa en Streamlit
+map_data = st_folium(map_, width=700, height=500)
 
-# Display the map in Streamlit
-st.title("Interactive Map of NYC with Construction Sites")
-st_folium(create_map(df), width=700, height=500)
+# Procesar clic en el mapa
+if map_data and "last_clicked" in map_data:
+    selected_point = (map_data["last_clicked"]["lat"], map_data["last_clicked"]["lng"])
+
+    nearest_school = find_nearest_location(selected_point, school_df, "school")
+    nearest_demolition = find_nearest_location(selected_point, demolition_df, "demolition")
+    nearest_pothole = find_nearest_location(selected_point, pothole_df, "pothole")
+
+    nearest_all = sorted([nearest_school, nearest_demolition, nearest_pothole], key=lambda x: x[2])
+    nearest_location = nearest_all[0]
+
+    st.write(f"Ubicación seleccionada: {selected_point}")
+    st.write(
+        f"Zona de riesgo más cercana: {nearest_location[0]} ({nearest_location[3]}) en {nearest_location[1]}, Distancia: {nearest_location[2]:.2f}m")
+
+    if nearest_location[2] <= 500:
+        warning_message = generate_warning_message(nearest_location[3], nearest_location[1], nearest_location[0])
+        st.warning(warning_message)
+    else:
+        st.success("No hay zonas de riesgo dentro de 500 metros.")
