@@ -32,9 +32,17 @@ def load_data():
                 df.rename(columns={"account_name": "name"}, inplace=True)
             elif key == "pothole":
                 df.rename(columns={"incident_address": "address"}, inplace=True)
-            if not {'latitude', 'longitude', 'name'}.issubset(df.columns):
-                st.error(f"Error: El archivo {file} no tiene las columnas necesarias.")
+
+            # Ensure 'name' column exists
+            if 'name' not in df.columns:
+                df['name'] = f"Ubicación {key}"
+
+            # Ensure required columns exist
+            required_cols = ['latitude', 'longitude']
+            if not all(col in df.columns for col in required_cols):
+                st.error(f"Error: El archivo {file} no tiene las columnas necesarias (latitude, longitude).")
                 return None, None, None
+
             dataframes[key] = df
         except Exception as e:
             st.error(f"Error al cargar {file}: {e}")
@@ -59,7 +67,10 @@ def find_nearest_location(point, df, type_name):
             nearest = row
 
     if nearest is not None:
-        return nearest['name'], nearest.get('address', 'Dirección no disponible'), min_distance, type_name
+        # Use get method to safely access columns that might not exist
+        name = nearest.get('name', f'Ubicación {type_name}')
+        address = nearest.get('address', 'Dirección no disponible')
+        return name, address, min_distance, type_name
     return None, None, None, None
 
 
@@ -96,22 +107,25 @@ if st.sidebar.button("Ejecutar Programa"):
         base_location = (40.700000, -73.900000)
         mapa = folium.Map(location=base_location, zoom_start=14)
 
-        # Agregar puntos de referencia
+        # Agregar puntos de referencia - Fix here with safe access using .get()
         for _, row in school_df.iterrows():
-            folium.Marker([row['latitude'], row['longitude']], tooltip=row.get('name', 'Sin nombre'),
+            folium.Marker([row['latitude'], row['longitude']],
+                          tooltip=row.get('name', 'Escuela sin nombre'),
                           icon=folium.Icon(color="blue")).add_to(mapa)
         for _, row in demolition_df.iterrows():
-            folium.Marker([row['latitude'], row['longitude']], tooltip=row.get('name', 'Sin nombre'),
+            folium.Marker([row['latitude'], row['longitude']],
+                          tooltip=row.get('name', 'Demolición sin nombre'),
                           icon=folium.Icon(color="red")).add_to(mapa)
         for _, row in pothole_df.iterrows():
-            folium.Marker([row['latitude'], row['longitude']], tooltip=row.get('name', 'Sin nombre'),
+            folium.Marker([row['latitude'], row['longitude']],
+                          tooltip=row.get('name', 'Bache sin nombre'),
                           icon=folium.Icon(color="orange")).add_to(mapa)
 
         # Mostrar mapa interactivo
         selected_point = st_folium(mapa, height=500)
 
         # Extraer la ubicación seleccionada
-        if selected_point and selected_point['last_clicked']:
+        if selected_point and selected_point.get('last_clicked'):
             lat = selected_point['last_clicked']['lat']
             lon = selected_point['last_clicked']['lng']
             user_location = (lat, lon)
