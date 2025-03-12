@@ -8,7 +8,7 @@ import os
 from streamlit_folium import st_folium
 from gtts import gTTS
 
-# Función para cargar datos desde CSV
+# Función para cargar datos
 def load_data():
     files = {
         "school": "school.csv",
@@ -34,29 +34,19 @@ def load_data():
 # Buscar ubicación más cercana
 def find_nearest_location(point, df, type_name):
     if df is None or df.empty:
-        return None, None, None, None
+        return None, None, None, None, None, None
 
-    if 'latitude' in df.columns and 'longitude' in df.columns:
-        df['distance'] = df.apply(lambda row: geopy.distance.distance(
-            point, (row['latitude'], row['longitude'])).m, axis=1)
-        nearest = df.loc[df['distance'].idxmin()]
-        min_distance = nearest['distance']
+    df['distance'] = df.apply(lambda row: geopy.distance.distance(
+        point, (row['latitude'], row['longitude'])).m, axis=1)
+    nearest = df.loc[df['distance'].idxmin()]
+    min_distance = nearest['distance']
 
-        if type_name == "school":
-            name = nearest.get("school_name", "Unnamed school")
-            address = nearest.get("building_address", "Address not available")
-        elif type_name == "demolition":
-            name = nearest.get("account_name", "Unnamed demolition site")
-            address = nearest.get("address", "Address not available")
-        else:  # pothole
-            name = "Pothole"
-            address = nearest.get("incident_address", "Address not available")
+    name = nearest.get("school_name", "Unnamed location") if type_name == "school" else nearest.get("account_name", "Unnamed demolition site") if type_name == "demolition" else "Pothole"
+    address = nearest.get("building_address", "Address not available") if type_name == "school" else nearest.get("address", "Address not available") if type_name == "demolition" else nearest.get("incident_address", "Address not available")
 
-        return name, address, min_distance, type_name, nearest['latitude'], nearest['longitude']
+    return name, address, min_distance, type_name, nearest['latitude'], nearest['longitude']
 
-    return None, None, None, None, None, None
-
-# Generar mensaje de advertencia con OpenAI
+# Generar advertencia con OpenAI
 def generate_warning_message(api_key, location_type, address, name):
     try:
         client = openai.OpenAI(api_key=api_key)
@@ -87,22 +77,8 @@ def text_to_audio(text, filename="warning.mp3"):
         st.error(f"Error generando audio: {e}")
         return None
 
-# Obtener tráfico en tiempo real de Waze
-def get_waze_traffic_data():
-    waze_api_url = "https://www.waze.com/rtserver/web/TGeoRSS?ma=200&mj=100&mu=50&left=-74.1&right=-73.9&top=40.8&bottom=40.6"
-    try:
-        response = requests.get(waze_api_url)
-        if response.status_code == 200:
-            return response.json()
-        else:
-            return None
-    except Exception as e:
-        st.error(f"Error obteniendo tráfico de Waze: {e}")
-        return None
-
 # Configuración de Streamlit
 st.title("Sistema de Advertencia para Conductores")
-
 st.sidebar.header("Configuración")
 api_key = st.sidebar.text_input("Ingrese su OpenAI API Key", type="password")
 
@@ -130,46 +106,53 @@ if school_df is not None and demolition_df is not None and pothole_df is not Non
 
     map_data = st_folium(map_object, height=500, width=700, key="map_widget")
 
-    if map_data and 'last_clicked' in map_data:
-        lat = map_data['last_clicked']['lat']
-        lon = map_data['last_clicked']['lng']
-        user_location = (lat, lon)
+    # ✅ Evitar error cuando `map_data` es None
+    if map_data and isinstance(map_data, dict) and 'last_clicked' in map_data:
+        if map_data['last_clicked']:
+            lat = map_data['last_clicked'].get('lat', None)
+            lon = map_data['last_clicked'].get('lng', None)
 
-        st.write(f"Ubicación seleccionada: {lat}, {lon}")
+            if lat is not None and lon is not None:
+                user_location = (lat, lon)
+                st.write(f"Ubicación seleccionada: {lat}, {lon}")
 
-        nearest_school = find_nearest_location(user_location, school_df, "school")
-        nearest_demolition = find_nearest_location(user_location, demolition_df, "demolition")
-        nearest_pothole = find_nearest_location(user_location, pothole_df, "pothole")
+                nearest_school = find_nearest_location(user_location, school_df, "school")
+                nearest_demolition = find_nearest_location(user_location, demolition_df, "demolition")
+                nearest_pothole = find_nearest_location(user_location, pothole_df, "pothole")
 
-        nearest_all = sorted([nearest_school, nearest_demolition, nearest_pothole],
-                             key=lambda x: x[2] if x[2] else float('inf'))
-        nearest_location = nearest_all[0]
+                nearest_all = sorted([nearest_school, nearest_demolition, nearest_pothole],
+                                    key=lambda x: x[2] if x[2] else float('inf'))
+                nearest_location = nearest_all[0]
 
-        if nearest_location[2] and nearest_location[2] <= 500:
-            st.warning("⚠️ ALERTA DE PELIGRO ⚠️")
+                if nearest_location[2] and nearest_location[2] <= 500:
+                    st.warning("⚠️ ALERTA DE PELIGRO ⚠️")
 
-            st.write(f"**Tipo:** {nearest_location[3].title()}")
-            st.write(f"**Nombre:** {nearest_location[0]}")
-            st.write(f"**Dirección:** {nearest_location[1]}")
-            st.write(f"**Distancia:** {nearest_location[2]:.2f}m")
+                    st.write(f"**Tipo:** {nearest_location[3].title()}")
+                    st.write(f"**Nombre:** {nearest_location[0]}")
+                    st.write(f"**Dirección:** {nearest_location[1]}")
+                    st.write(f"**Distancia:** {nearest_location[2]:.2f}m")
 
-            waze_url = f"https://waze.com/ul?ll={nearest_location[4]},{nearest_location[5]}&navigate=yes"
-            st.markdown(f"[🗺️ Abrir en Waze]({waze_url})", unsafe_allow_html=True)
+                    waze_url = f"https://waze.com/ul?ll={nearest_location[4]},{nearest_location[5]}&navigate=yes"
+                    st.markdown(f"[🗺️ Abrir en Waze]({waze_url})", unsafe_allow_html=True)
 
-            if api_key:
-                with st.spinner("Generando advertencia..."):
-                    warning_message = generate_warning_message(api_key, nearest_location[3], nearest_location[1],
-                                                               nearest_location[0])
+                    if api_key:
+                        with st.spinner("Generando advertencia..."):
+                            warning_message = generate_warning_message(api_key, nearest_location[3], nearest_location[1], nearest_location[0])
 
-                st.subheader("Mensaje generado")
-                st.info(warning_message)
+                        st.subheader("Mensaje generado")
+                        st.info(warning_message)
 
-                audio_file = text_to_audio(warning_message)
-                if audio_file:
-                    st.audio(audio_file, format="audio/mp3")
+                        audio_file = text_to_audio(warning_message)
+                        if audio_file:
+                            st.audio(audio_file, format="audio/mp3")
+                    else:
+                        st.warning("Ingrese su OpenAI API Key para generar advertencias detalladas.")
+                else:
+                    st.success("✅ No hay peligros cercanos dentro de 500 metros.")
             else:
-                st.warning("Ingrese su OpenAI API Key para generar advertencias detalladas.")
-        else:
-            st.success("✅ No hay peligros cercanos dentro de 500 metros.")
+                st.warning("⚠️ No se pudo capturar la ubicación seleccionada en el mapa. Intenta hacer clic nuevamente.")
+    else:
+        st.warning("⚠️ Esperando selección en el mapa... Haz clic en una ubicación para obtener información.")
+
 else:
     st.error("Error al cargar archivos CSV.")
