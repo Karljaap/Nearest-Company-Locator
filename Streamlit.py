@@ -73,7 +73,6 @@ filtered_data_march = filtered_data[(filtered_data['created'].dt.year == 2025) &
 
 # Remove rows where latitude or longitude are NaN
 demolition  = filtered_data_march.dropna(subset=['latitude', 'longitude'])
-demolition
 
 # --------------------------------------------------------------------------------
 import pandas as pd
@@ -216,7 +215,6 @@ filtered_data_march = filtered_data[(filtered_data['created_date'].dt.year == 20
 
 # Remove rows where latitude or longitude are NaN
 pothole = filtered_data_march.dropna(subset=['latitude', 'longitude'])
-pothole
 
 # --------------------------------------------------------------------------------
 import streamlit as st
