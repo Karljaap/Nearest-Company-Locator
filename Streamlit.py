@@ -1,21 +1,3 @@
-# Add the Apply API Key button with direct button style override
-apply_key = st.sidebar.button(
-    "Apply API Key",
-    key="apply_key_button",
-    help="Click to apply the API key"
-)
-
-# Add custom button styling
-st.sidebar.markdown("""
-<style>
-    div[data-testid="stSidebar"] button {
-        background-color: #fabfb7 !important;
-        color: #000000 !important;
-        font-weight: bold;
-        opacity: 1 !important;
-    }
-</style>
-""", unsafe_allow_html=True)
 import streamlit as st
 import pandas as pd
 import folium
@@ -199,6 +181,7 @@ st.sidebar.header("Settings")
 
 # API key input with apply button
 api_key = st.sidebar.text_input("Enter your OpenAI API Key", type="password")
+apply_key = st.sidebar.button("Apply API Key")
 
 # Load data up front, not based on button click
 school_df, demolition_df, pothole_df = load_data()
