@@ -18,9 +18,9 @@ def load_data():
             st.error(f"Error: El archivo {file} no se encontró. Verifica su ubicación.")
             return None, None, None
 
-    school_df = pd.read_csv("school.csv")
-    demolition_df = pd.read_csv("demolition.csv")
-    pothole_df = pd.read_csv("pothole.csv")
+    school_df = pd.read_csv("./school.csv")
+    demolition_df = pd.read_csv("./demolition.csv")
+    pothole_df = pd.read_csv("./pothole.csv")
 
     return school_df, demolition_df, pothole_df
 
