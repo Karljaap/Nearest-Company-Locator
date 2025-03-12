@@ -1,3 +1,224 @@
+# --------------------------------------------------------------------------------
+import pandas as pd
+import requests
+from io import StringIO
+from concurrent.futures import ThreadPoolExecutor
+
+# Base parameters
+BASE_URL = "https://data.cityofnewyork.us/resource/cspg-yi7g.csv?$query="
+QUERY_TEMPLATE = """SELECT created, account_name, address, latitude, longitude
+ WHERE created >= '{start_date}' AND created <= '{end_date}' ORDER BY created DESC NULL FIRST"""
+
+LIMIT = 5000  # Number of records per request
+
+# Function to fetch data with pagination and date filtering
+def fetch_data(offset, start_date, end_date):
+    query = QUERY_TEMPLATE.format(start_date=start_date, end_date=end_date)
+    url = f"{BASE_URL}{query} LIMIT {LIMIT} OFFSET {offset}"
+
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        df = pd.read_csv(StringIO(response.text))
+        return df if not df.empty else None
+    except Exception as e:
+        print(f"Error fetching data at offset {offset}: {e}")
+        return None
+
+# Main function to retrieve and consolidate the data
+def get_filtered_data(start_date, end_date):
+    print(f"Fetching data from {start_date} to {end_date}...")
+
+    # Fetch the first batch to verify if there is data available
+    initial_df = fetch_data(0, start_date, end_date)
+    if initial_df is None:
+        print("No data found within the specified date range.")
+        return None
+
+    # List to store results
+    all_data = [initial_df]
+    total_records = len(initial_df)
+
+    print(f"First batch retrieved: {total_records} records.")
+
+    # Create a list of offsets for pagination
+    offsets = list(range(LIMIT, 1000000, LIMIT))  # Up to 1 million records
+
+    # Fetch data in parallel
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        results = list(executor.map(lambda offset: fetch_data(offset, start_date, end_date), offsets))
+
+    # Add only the results that contain data
+    for result in results:
+        if result is not None:
+            all_data.append(result)
+
+    # Combine all data into a single DataFrame
+    data = pd.concat(all_data, ignore_index=True)
+    print(f"Total records retrieved: {len(data)}")
+
+    return data
+
+# Example usage with specific date range
+start_date = "2025-02-01"
+end_date = "2025-03-06"
+filtered_data = get_filtered_data(start_date, end_date)
+
+# Convert the 'created' column to datetime format if it is not already
+filtered_data['created'] = pd.to_datetime(filtered_data['created'])
+
+# Filter the data for March 3, 2025
+filtered_data_march = filtered_data[(filtered_data['created'].dt.year == 2025) &
+                     (filtered_data['created'].dt.month == 3)][['latitude', 'longitude', 'account_name', 'address']]
+
+# Remove rows where latitude or longitude are NaN
+demolition  = filtered_data_march.dropna(subset=['latitude', 'longitude'])
+demolition
+
+# --------------------------------------------------------------------------------
+import pandas as pd
+import requests
+from io import StringIO
+from concurrent.futures import ThreadPoolExecutor
+
+# Base parameters
+BASE_URL = "https://data.cityofnewyork.us/resource/8586-3zfm.csv?$query="
+QUERY_TEMPLATE = """SELECT name AS school_name, latitude, longitude, building_address
+                    WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+                    ORDER BY school_name ASC"""
+LIMIT = 5000  # Number of records per request
+
+# Function to fetch data with pagination
+def fetch_data(offset):
+    url = f"{BASE_URL}{QUERY_TEMPLATE} LIMIT {LIMIT} OFFSET {offset}"
+
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        df = pd.read_csv(StringIO(response.text))
+        return df if not df.empty else None
+    except Exception as e:
+        print(f"Error fetching data at offset {offset}: {e}")
+        return None
+
+# Main function to retrieve and consolidate the data
+def get_all_data():
+    print("Fetching **ALL** available school construction projects data...")
+
+    # Fetch the first batch to verify if there is data available
+    initial_df = fetch_data(0)
+    if initial_df is None:
+        print("No data found in the dataset.")
+        return None
+
+    # List to store results
+    all_data = [initial_df]
+    total_records = len(initial_df)
+
+    print(f"First batch retrieved: {total_records} records.")
+
+    # Create a list of offsets for pagination
+    offsets = list(range(LIMIT, 1000000, LIMIT))  # Up to 1 million records
+
+    # Fetch data in parallel
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        results = list(executor.map(fetch_data, offsets))
+
+    # Add only the results that contain data
+    for result in results:
+        if result is not None:
+            all_data.append(result)
+
+    # Combine all data into a single DataFrame
+    data = pd.concat(all_data, ignore_index=True)
+    print(f"Total records retrieved: {len(data)}")
+
+    return data
+
+# Fetch ALL available data
+school = get_all_data()
+
+# --------------------------------------------------------------------------------
+import requests
+import pandas as pd
+from io import StringIO
+from concurrent.futures import ThreadPoolExecutor
+
+# Base URL del API
+BASE_URL = "https://data.cityofnewyork.us/resource/fed5-ydvq.csv?$query="
+
+# Consulta SQL para extraer todas las columnas con filtro de fecha
+QUERY_TEMPLATE = """SELECT created_date, complaint_type,	descriptor, incident_address, longitude, latitude
+WHERE created_date BETWEEN '{start_date}' AND '{end_date}'
+ORDER BY created_date DESC"""
+
+LIMIT = 5000  # Número de registros por solicitud
+
+# Función para obtener datos con paginación y filtrado de fechas
+def fetch_data(offset, start_date, end_date):
+    query = QUERY_TEMPLATE.format(start_date=start_date, end_date=end_date)
+    url = f"{BASE_URL}{query} LIMIT {LIMIT} OFFSET {offset}"
+
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        df = pd.read_csv(StringIO(response.text))
+        return df if not df.empty else None
+    except Exception as e:
+        print(f"Error obteniendo datos en el offset {offset}: {e}")
+        return None
+
+# Función principal para obtener y consolidar los datos filtrados
+def get_filtered_data(start_date, end_date):
+    print(f"Obteniendo datos desde {start_date} hasta {end_date}...")
+
+    # Obtener el primer lote de datos
+    initial_df = fetch_data(0, start_date, end_date)
+    if initial_df is None:
+        print("No se encontraron datos en el rango de fechas especificado.")
+        return None
+
+    # Lista para almacenar los resultados
+    all_data = [initial_df]
+    total_records = len(initial_df)
+
+    print(f"Primer lote recuperado: {total_records} registros.")
+
+    # Crear lista de offsets para paginación
+    offsets = list(range(LIMIT, 1000000, LIMIT))  # Hasta 1 millón de registros
+
+    # Obtener datos en paralelo
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        results = list(executor.map(lambda offset: fetch_data(offset, start_date, end_date), offsets))
+
+    # Agregar solo los resultados que contienen datos
+    for result in results:
+        if result is not None:
+            all_data.append(result)
+
+    # Combinar todos los datos en un solo DataFrame
+    data = pd.concat(all_data, ignore_index=True)
+    print(f"Total de registros recuperados: {len(data)}")
+
+    return data
+
+# Uso con el rango de fechas especificado
+start_date = "2025-02-01"
+end_date = "2025-03-06"
+filtered_data = get_filtered_data(start_date, end_date)
+
+# Convert the 'created_date' column to datetime format if it is not already
+filtered_data['created_date'] = pd.to_datetime(filtered_data['created_date'])
+
+# Filter the data for March 3, 2025
+filtered_data_march = filtered_data[(filtered_data['created_date'].dt.year == 2025) &
+                     (filtered_data['created_date'].dt.month == 3)][['complaint_type',	'descriptor', 'incident_address', 'latitude', 'longitude']]
+
+# Remove rows where latitude or longitude are NaN
+pothole = filtered_data_march.dropna(subset=['latitude', 'longitude'])
+pothole
+
+# --------------------------------------------------------------------------------
 import streamlit as st
 import pandas as pd
 import geopy.distance
@@ -7,9 +228,9 @@ from streamlit_folium import st_folium
 from getpass import getpass
 
 # Cargar datos desde los CSV (ajustar nombres de archivos si es necesario)
-school_df = pd.read_csv("school.csv")
-demolition_df = pd.read_csv("demolition.csv")
-pothole_df = pd.read_csv("pothole.csv")
+school_df = school
+demolition_df = demolition
+pothole_df = pothole
 
 # Configuración de API Key de OpenAI
 api_key = getpass("Enter API key: ")
