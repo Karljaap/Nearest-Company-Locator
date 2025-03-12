@@ -4,19 +4,42 @@ import geopy.distance
 import openai
 import folium
 from streamlit_folium import st_folium
+from concurrent.futures import ThreadPoolExecutor
+import requests
+from io import StringIO
+
+# Base URLs para los datasets
+DATASETS = {
+    "demolition": "https://data.cityofnewyork.us/resource/cspg-yi7g.csv?$query=SELECT created, account_name, address, latitude, longitude WHERE created >= '{start_date}' AND created <= '{end_date}' ORDER BY created DESC NULL FIRST",
+    "school": "https://data.cityofnewyork.us/resource/8586-3zfm.csv?$query=SELECT name AS school_name, latitude, longitude, building_address WHERE latitude IS NOT NULL AND longitude IS NOT NULL ORDER BY school_name ASC",
+    "pothole": "https://data.cityofnewyork.us/resource/fed5-ydvq.csv?$query=SELECT created_date, complaint_type, descriptor, incident_address, longitude, latitude WHERE created_date BETWEEN '{start_date}' AND '{end_date}' ORDER BY created_date DESC"
+}
+
+LIMIT = 5000
 
 
-# Cargar datos previamente filtrados
-@st.cache_data
-def load_data():
-    school_df = pd.read_csv("school_data.csv")[['school_name', 'latitude', 'longitude', 'building_address']].dropna()
-    demolition_df = pd.read_csv("demolition_data.csv")[['latitude', 'longitude', 'account_name', 'address']].dropna()
-    pothole_df = pd.read_csv("pothole_data.csv")[
-        ['latitude', 'longitude', 'complaint_type', 'incident_address']].dropna()
-    return school_df, demolition_df, pothole_df
+# Función para obtener datos desde el API
+def fetch_data(url):
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        df = pd.read_csv(StringIO(response.text))
+        return df if not df.empty else None
+    except Exception as e:
+        print(f"Error obteniendo datos: {e}")
+        return None
 
 
-school_df, demolition_df, pothole_df = load_data()
+# Función para obtener y consolidar los datos
+def get_data(dataset_key, start_date="2025-02-01", end_date="2025-03-06"):
+    url = DATASETS[dataset_key].format(start_date=start_date, end_date=end_date)
+    return fetch_data(url)
+
+
+# Cargar los datos
+demolition_df = get_data("demolition")[['latitude', 'longitude', 'account_name', 'address']].dropna()
+school_df = get_data("school")[['school_name', 'latitude', 'longitude', 'building_address']].dropna()
+pothole_df = get_data("pothole")[['latitude', 'longitude', 'complaint_type', 'incident_address']].dropna()
 
 # Crear la aplicación Streamlit
 st.title("Sistema de Advertencia para Conductores")
