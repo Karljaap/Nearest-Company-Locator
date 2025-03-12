@@ -9,7 +9,6 @@ from pydub import AudioSegment
 from pydub.playback import play
 import os
 
-
 def load_data():
     """Carga los datos de ubicaciones desde CSV verificando su existencia"""
     files = ["school.csv", "demolition.csv", "pothole.csv"]
@@ -23,7 +22,6 @@ def load_data():
     pothole_df = pd.read_csv("./pothole.csv")
 
     return school_df, demolition_df, pothole_df
-
 
 def find_nearest_location(point, df, type_name):
     nearest = None
@@ -44,7 +42,6 @@ def find_nearest_location(point, df, type_name):
         return nearest['name'], nearest['address'], min_distance, type_name
     return None, None, None, None
 
-
 def generate_warning_message(api_key, location_type, address, name):
     openai.api_key = api_key
     response = openai.ChatCompletion.create(
@@ -57,13 +54,11 @@ def generate_warning_message(api_key, location_type, address, name):
     )
     return response['choices'][0]['message']['content']
 
-
 def text_to_audio(text, filename="warning.mp3"):
     from gtts import gTTS
     tts = gTTS(text=text, lang='en')
     tts.save(filename)
     return filename
-
 
 # Streamlit UI
 st.title("Sistema de Advertencias para Conductores")
