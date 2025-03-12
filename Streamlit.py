@@ -287,18 +287,39 @@ if school_df is not None and demolition_df is not None and pothole_df is not Non
     map_object = folium.Map(location=base_location, zoom_start=14)
 
     # Add reference points
+
     for _, row in school_df.iterrows():
-        folium.CircleMarker([row['latitude'], row['longitude']],
-                      tooltip=row.get('school_name', 'Unnamed school'),
-                      icon=folium.Icon(color="blue")).add_to(map_object)
+        folium.CircleMarker(
+            location=[row['latitude'], row['longitude']],
+            radius=5,
+            color='blue',
+            fill=True,
+            fill_color='blue',
+            fill_opacity=0.8,
+            tooltip=row.get('school_name', 'Unnamed school')
+        ).add_to(map_object)
+
     for _, row in demolition_df.iterrows():
-        folium.CircleMarker([row['latitude'], row['longitude']],
-                      tooltip=row.get('account_name', 'Unnamed demolition site'),
-                      icon=folium.Icon(color="red")).add_to(map_object)
+        folium.CircleMarker(
+            location=[row['latitude'], row['longitude']],
+            radius=5,  # Adjusted size
+            color='darkred',
+            fill=True,
+            fill_color='red',
+            fill_opacity=0.8,
+            tooltip=row.get('account_name', 'Unnamed demolition site')
+        ).add_to(map_object)
+
     for _, row in pothole_df.iterrows():
-        folium.CircleMarker([row['latitude'], row['longitude']],
-                      tooltip="Pothole",
-                      icon=folium.Icon(color="orange")).add_to(map_object)
+        folium.CircleMarker(
+            location=[row['latitude'], row['longitude']],
+            radius=5,  # Adjusted size
+            color='darkorange',
+            fill=True,
+            fill_color='orange',
+            fill_opacity=0.8,
+            tooltip='Pothole'
+        ).add_to(map_object)
 
     # Display interactive map with return_map_bounds=True to capture clicks
     map_data = st_folium(map_object, height=500, width=700, key="map_widget")
