@@ -151,27 +151,53 @@ st.markdown("""
 # Minimalist UI with properly colored title
 st.title("Driver Warning System")
 
-# Fix the sidebar styling
+# Fix the sidebar styling - improve visibility with stronger colors
 st.sidebar.markdown("""
 <style>
     div[data-testid="stSidebar"] {
-        background-color: #1E1E1E !important;
+        background-color: #2C2C2C !important;
     }
     div[data-testid="stSidebar"] p, 
-    div[data-testid="stSidebar"] span, 
-    div[data-testid="stSidebar"] label, 
+    div[data-testid="stSidebar"] span,  
     div[data-testid="stSidebar"] div {
         color: #FFFFFF !important;
+    }
+    div[data-testid="stSidebar"] label {
+        color: #FFFFFF !important;
+        font-weight: bold !important;
+        font-size: 16px !important;
     }
     div[data-testid="stSidebar"] h1, 
     div[data-testid="stSidebar"] h2, 
     div[data-testid="stSidebar"] h3 {
-        color: #FFFFFF !important;
+        color: #ffda9e !important;
+        font-weight: bold !important;
+        font-size: 20px !important;
+        background-color: #333333 !important;
+        padding: 10px !important;
+        border-radius: 5px !important;
+        margin-bottom: 15px !important;
     }
     div[data-testid="stSidebar"] button {
         background-color: #fabfb7 !important;
         color: #000000 !important;
-        font-weight: bold;
+        font-weight: bold !important;
+        font-size: 16px !important;
+        padding: 8px 16px !important;
+        border: 2px solid #000000 !important;
+        border-radius: 5px !important;
+        display: block !important;
+        width: 100% !important;
+        margin-top: 10px !important;
+    }
+    /* Style for password input */
+    div[data-testid="stSidebar"] input[type="password"] {
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+        border: 2px solid #fabfb7 !important;
+        padding: 8px !important;
+        font-size: 16px !important;
+        border-radius: 5px !important;
     }
 </style>
 """, unsafe_allow_html=True)
