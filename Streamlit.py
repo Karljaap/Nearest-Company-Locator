@@ -288,15 +288,15 @@ if school_df is not None and demolition_df is not None and pothole_df is not Non
 
     # Add reference points
     for _, row in school_df.iterrows():
-        folium.Marker([row['latitude'], row['longitude']],
+        folium.CircleMarker([row['latitude'], row['longitude']],
                       tooltip=row.get('school_name', 'Unnamed school'),
                       icon=folium.Icon(color="blue")).add_to(map_object)
     for _, row in demolition_df.iterrows():
-        folium.Marker([row['latitude'], row['longitude']],
+        folium.CircleMarker([row['latitude'], row['longitude']],
                       tooltip=row.get('account_name', 'Unnamed demolition site'),
                       icon=folium.Icon(color="red")).add_to(map_object)
     for _, row in pothole_df.iterrows():
-        folium.Marker([row['latitude'], row['longitude']],
+        folium.CircleMarker([row['latitude'], row['longitude']],
                       tooltip="Pothole",
                       icon=folium.Icon(color="orange")).add_to(map_object)
 
