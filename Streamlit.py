@@ -98,48 +98,34 @@ if 'map_clicked' not in st.session_state:
 if 'selected_point' not in st.session_state:
     st.session_state.selected_point = None
 
-# Add custom CSS for better styling
+# Add custom CSS for minimalist styling
 st.markdown("""
 <style>
     .stApp {
-        background-color: #f8f9fa;
+        background-color: white;
     }
     .stButton button {
-        font-weight: bold;
-        border-radius: 6px;
-    }
-    .css-18e3th9 {
-        padding-top: 2rem;
+        border-radius: 4px;
     }
     h1 {
-        color: #1e3a8a;
-        text-align: center;
-        padding: 15px;
+        font-size: 28px;
         margin-bottom: 20px;
-        background-color: #e6f0ff;
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     }
     div[data-testid="stSidebar"] {
-        background-color: #f8f9fa;
-        border-right: 1px solid #e0e0e0;
+        background-color: white;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Streamlit UI with better title
+# Minimalist UI with simple title
 st.title("Driver Warning System")
 
-# Improved sidebar styling
-st.sidebar.markdown("""
-<div style="background-color:#f0f2f6; padding:10px; border-radius:10px; margin-bottom:15px">
-    <h2 style="color:#0e1117; font-size:1.5em; margin-bottom:10px">Settings</h2>
-</div>
-""", unsafe_allow_html=True)
+# Minimalist sidebar
+st.sidebar.header("Settings")
 
 # API key input with apply button
 api_key = st.sidebar.text_input("Enter your OpenAI API Key", type="password")
-apply_key = st.sidebar.button("Apply API Key", use_container_width=True, key="apply_key_button")
+apply_key = st.sidebar.button("Apply API Key", key="apply_key_button")
 
 # Load data up front, not based on button click
 school_df, demolition_df, pothole_df = load_data()
@@ -189,10 +175,14 @@ if school_df is not None and demolition_df is not None and pothole_df is not Non
         nearest_location = nearest_all[0]
 
         if nearest_location[2] and nearest_location[2] <= 500:
-            # Style the warning with custom HTML
+            # Keep the HAZARD ALERT section as it was requested to be kept
             st.markdown(f"""
-            <div style="background-color:#ffe0e0; padding:15px; border-radius:10px; margin:15px 0; border-left:5px solid #ff0000">
-                <h3 style="color:#cf0000; margin:0 0 10px 0">⚠️ HAZARD ALERT</h3>
+            <div style="background-color:#ffe0e0; padding:15px; border-radius:0px; margin:15px 0; border-left:5px solid #ff0000">
+                <div style="background-color:#4169E1; padding:5px; display:inline-block; margin-bottom:10px">
+                    <h3 style="color:white; margin:0; display:flex; align-items:center">
+                        <span style="margin-right:10px">⚠️</span> HAZARD ALERT
+                    </h3>
+                </div>
                 <p><strong>Location Type:</strong> {nearest_location[3].title()}</p>
                 <p><strong>Name:</strong> {nearest_location[0]}</p>
                 <p><strong>Address:</strong> {nearest_location[1]}</p>
@@ -201,23 +191,22 @@ if school_df is not None and demolition_df is not None and pothole_df is not Non
             """, unsafe_allow_html=True)
 
             if api_key:
-                with st.spinner("Generating detailed warning..."):
+                with st.spinner("Generating warning..."):
                     warning_message = generate_warning_message(api_key, nearest_location[3], nearest_location[1],
                                                                nearest_location[0])
 
-                st.markdown("<h3 style='margin-top:20px'>Generated Message:</h3>", unsafe_allow_html=True)
+                st.subheader("Generated Message")
                 st.info(warning_message)
 
-                # Generate audio with better UI
+                # Generate audio
                 audio_file = text_to_audio(warning_message)
                 if audio_file:
-                    st.markdown("<h3 style='margin-top:20px'>Audio Alert:</h3>", unsafe_allow_html=True)
+                    st.subheader("Audio Alert")
                     st.audio(audio_file, format="audio/mp3")
             else:
-                st.warning(
-                    "⚠️ Please enter your OpenAI API Key in the sidebar and click 'Apply API Key' to generate detailed warnings.")
+                st.warning("Please enter your OpenAI API Key to generate detailed warnings.")
         else:
-            st.info("✓ No nearby hazards detected within 500 meters of your selected location.")
+            st.info("No nearby hazards detected within 500 meters.")
 
     # Add button to reset selection
     if st.session_state.map_clicked:
