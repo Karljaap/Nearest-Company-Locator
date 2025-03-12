@@ -1,11 +1,8 @@
-folium
-geopandas
-shapely
 streamlit
-streamlit-folium
 pandas
-matplotlib
 geopy
+folium
 openai
 numpy
-requests
+streamlit_folium
+pydub
