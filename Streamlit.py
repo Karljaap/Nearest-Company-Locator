@@ -8,6 +8,10 @@ from concurrent.futures import ThreadPoolExecutor
 import requests
 from io import StringIO
 
+# Solicitar API Key para OpenAI
+st.sidebar.header("Configuración")
+api_key = st.sidebar.text_input("Ingrese su API Key de OpenAI", type="password")
+
 # Base URLs para los datasets
 DATASETS = {
     "demolition": "https://data.cityofnewyork.us/resource/cspg-yi7g.csv?$query=SELECT created, account_name, address, latitude, longitude WHERE created >= '{start_date}' AND created <= '{end_date}' ORDER BY created DESC NULL FIRST",
