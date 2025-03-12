@@ -9,9 +9,8 @@ from pydub import AudioSegment
 from pydub.playback import play
 import os
 
-
 def load_data():
-    """Carga los datos de ubicaciones desde CSV verificando su existencia y estructura."""
+    """Loads location data from CSV files, verifying their existence and structure."""
     files = {
         "school": "school.csv",
         "demolition": "demolition.csv",
@@ -21,19 +20,17 @@ def load_data():
 
     for key, file in files.items():
         if not os.path.exists(file):
-            st.error(f"Error: El archivo {file} no se encontró.")
+            st.error(f"Error: The file {file} was not found.")
             return None, None, None
         try:
             df = pd.read_csv(file)
             df.columns = df.columns.str.strip().str.lower()
-            # No renombramos las columnas aquí, trabajaremos con los nombres originales
             dataframes[key] = df
         except Exception as e:
-            st.error(f"Error al cargar {file}: {e}")
+            st.error(f"Error loading {file}: {e}")
             return None, None, None
 
     return dataframes["school"], dataframes["demolition"], dataframes["pothole"]
-
 
 def find_nearest_location(point, df, type_name):
     nearest = None
@@ -51,20 +48,18 @@ def find_nearest_location(point, df, type_name):
             nearest = row
 
     if nearest is not None:
-        # Usa los nombres de columnas correctos según el tipo de datos
         if type_name == "school":
-            name = nearest.get("school_name", "Escuela sin nombre")
-            address = nearest.get("building_address", "Dirección no disponible")
+            name = nearest.get("school_name", "Unnamed school")
+            address = nearest.get("building_address", "Address not available")
         elif type_name == "demolition":
-            name = nearest.get("account_name", "Demolición sin nombre")
-            address = nearest.get("address", "Dirección no disponible")
+            name = nearest.get("account_name", "Unnamed demolition site")
+            address = nearest.get("address", "Address not available")
         else:  # pothole
-            name = "Bache"
-            address = nearest.get("incident_address", "Dirección no disponible")
+            name = "Pothole"
+            address = nearest.get("incident_address", "Address not available")
 
         return name, address, min_distance, type_name
     return None, None, None, None
-
 
 def generate_warning_message(api_key, location_type, address, name):
     try:
@@ -79,9 +74,8 @@ def generate_warning_message(api_key, location_type, address, name):
         )
         return response.choices[0].message.content
     except Exception as e:
-        st.error(f"Error al generar el mensaje: {e}")
-        return f"¡Precaución! Se acerca a un sitio de {location_type} en {address} operado por {name}."
-
+        st.error(f"Error generating message: {e}")
+        return f"Caution! You are approaching a {location_type} site at {address}, operated by {name}."
 
 def text_to_audio(text, filename="warning.mp3"):
     try:
@@ -90,49 +84,48 @@ def text_to_audio(text, filename="warning.mp3"):
         tts.save(filename)
         return filename
     except Exception as e:
-        st.error(f"Error al generar audio: {e}")
+        st.error(f"Error generating audio: {e}")
         return None
 
-
 # Streamlit UI
-st.title("Sistema de Advertencias para Conductores")
-st.sidebar.header("Configuración")
-api_key = st.sidebar.text_input("Ingresa tu API Key de OpenAI", type="password")
+st.title("Driver Warning System")
+st.sidebar.header("Settings")
+api_key = st.sidebar.text_input("Enter your OpenAI API Key", type="password")
 
-if st.sidebar.button("Ejecutar Programa"):
+if st.sidebar.button("Run Program"):
     school_df, demolition_df, pothole_df = load_data()
 
     if school_df is not None and demolition_df is not None and pothole_df is not None:
-        # Crear mapa base
+        # Create base map
         base_location = (40.700000, -73.900000)
-        mapa = folium.Map(location=base_location, zoom_start=14)
+        map_object = folium.Map(location=base_location, zoom_start=14)
 
-        # Agregar puntos de referencia - usando los nombres correctos de columnas
+        # Add reference points
         for _, row in school_df.iterrows():
             folium.Marker([row['latitude'], row['longitude']],
-                          tooltip=row.get('school_name', 'Escuela sin nombre'),
-                          icon=folium.Icon(color="blue")).add_to(mapa)
+                          tooltip=row.get('school_name', 'Unnamed school'),
+                          icon=folium.Icon(color="blue")).add_to(map_object)
         for _, row in demolition_df.iterrows():
             folium.Marker([row['latitude'], row['longitude']],
-                          tooltip=row.get('account_name', 'Demolición sin nombre'),
-                          icon=folium.Icon(color="red")).add_to(mapa)
+                          tooltip=row.get('account_name', 'Unnamed demolition site'),
+                          icon=folium.Icon(color="red")).add_to(map_object)
         for _, row in pothole_df.iterrows():
             folium.Marker([row['latitude'], row['longitude']],
-                          tooltip="Bache",
-                          icon=folium.Icon(color="orange")).add_to(mapa)
+                          tooltip="Pothole",
+                          icon=folium.Icon(color="orange")).add_to(map_object)
 
-        # Mostrar mapa interactivo
-        selected_point = st_folium(mapa, height=500)
+        # Display interactive map
+        selected_point = st_folium(map_object, height=500)
 
-        # Extraer la ubicación seleccionada
+        # Extract selected location
         if selected_point and selected_point.get('last_clicked'):
             lat = selected_point['last_clicked']['lat']
             lon = selected_point['last_clicked']['lng']
             user_location = (lat, lon)
 
-            st.write(f"Ubicación seleccionada: {lat}, {lon}")
+            st.write(f"Selected location: {lat}, {lon}")
 
-            # Buscar ubicaciones cercanas
+            # Find nearest locations
             nearest_school = find_nearest_location(user_location, school_df, "school")
             nearest_demolition = find_nearest_location(user_location, demolition_df, "demolition")
             nearest_pothole = find_nearest_location(user_location, pothole_df, "pothole")
@@ -143,19 +136,19 @@ if st.sidebar.button("Ejecutar Programa"):
 
             if nearest_location[2] and nearest_location[2] <= 500:
                 st.success(
-                    f"Advertencia: Cerca de {nearest_location[0]} ({nearest_location[3]}) en {nearest_location[1]}. Distancia: {nearest_location[2]:.2f}m")
+                    f"Warning: Near {nearest_location[0]} ({nearest_location[3]}) at {nearest_location[1]}. Distance: {nearest_location[2]:.2f}m")
 
                 if api_key:
                     warning_message = generate_warning_message(api_key, nearest_location[3], nearest_location[1],
                                                                nearest_location[0])
-                    st.write("Mensaje generado:")
+                    st.write("Generated message:")
                     st.info(warning_message)
 
-                    # Generar audio
+                    # Generate audio
                     audio_file = text_to_audio(warning_message)
                     if audio_file:
                         st.audio(audio_file, format="audio/mp3")
                 else:
-                    st.warning("Por favor, ingresa tu API Key para generar advertencias.")
+                    st.warning("Please enter your API Key to generate warnings.")
             else:
-                st.info("No hay advertencias cercanas.")
+                st.info("No nearby warnings.")
