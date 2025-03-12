@@ -292,7 +292,7 @@ if school_df is not None and demolition_df is not None and pothole_df is not Non
         folium.CircleMarker(
             location=[row['latitude'], row['longitude']],
             radius=5,
-            color='blue',
+            color='darkblue',
             fill=True,
             fill_color='blue',
             fill_opacity=0.8,
