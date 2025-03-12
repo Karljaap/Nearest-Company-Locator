@@ -25,6 +25,13 @@ def load_data():
             return None, None, None
         try:
             df = pd.read_csv(file)
+            df.columns = df.columns.str.strip().str.lower()
+            if key == "school":
+                df.rename(columns={"school_name": "name", "building_address": "address"}, inplace=True)
+            elif key == "demolition":
+                df.rename(columns={"account_name": "name"}, inplace=True)
+            elif key == "pothole":
+                df.rename(columns={"incident_address": "address"}, inplace=True)
             if not {'latitude', 'longitude', 'name'}.issubset(df.columns):
                 st.error(f"Error: El archivo {file} no tiene las columnas necesarias.")
                 return None, None, None
@@ -91,13 +98,13 @@ if st.sidebar.button("Ejecutar Programa"):
 
         # Agregar puntos de referencia
         for _, row in school_df.iterrows():
-            folium.Marker([row['latitude'], row['longitude']], tooltip=row['name'],
+            folium.Marker([row['latitude'], row['longitude']], tooltip=row.get('name', 'Sin nombre'),
                           icon=folium.Icon(color="blue")).add_to(mapa)
         for _, row in demolition_df.iterrows():
-            folium.Marker([row['latitude'], row['longitude']], tooltip=row['name'],
+            folium.Marker([row['latitude'], row['longitude']], tooltip=row.get('name', 'Sin nombre'),
                           icon=folium.Icon(color="red")).add_to(mapa)
         for _, row in pothole_df.iterrows():
-            folium.Marker([row['latitude'], row['longitude']], tooltip=row['name'],
+            folium.Marker([row['latitude'], row['longitude']], tooltip=row.get('name', 'Sin nombre'),
                           icon=folium.Icon(color="orange")).add_to(mapa)
 
         # Mostrar mapa interactivo
@@ -137,4 +144,3 @@ if st.sidebar.button("Ejecutar Programa"):
                     st.warning("Por favor, ingresa tu API Key para generar advertencias.")
             else:
                 st.info("No hay advertencias cercanas.")
-
