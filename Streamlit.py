@@ -35,11 +35,46 @@ def load_data():
 
 
 def find_nearest_location(point, df, type_name):
-    nearest = None
-    min_distance = float('inf')
+    """Find the nearest location from a dataframe to a given point.
 
+    Args:
+        point (tuple): (latitude, longitude) of the reference point
+        df (pandas.DataFrame): DataFrame containing locations
+        type_name (str): Type of location ('school', 'demolition', or 'pothole')
+
+    Returns:
+        tuple: (name, address, distance, type_name) of the nearest location
+    """
     if df is None or df.empty:
         return None, None, None, None
+
+    # Calculate distances in a vectorized way if possible
+    if 'latitude' in df.columns and 'longitude' in df.columns:
+        # Create a function to calculate distances
+        calc_distance = lambda row: geopy.distance.distance(
+            point, (row['latitude'], row['longitude'])).m
+
+        # Apply the function to each row and find the minimum
+        df['distance'] = df.apply(calc_distance, axis=1)
+        nearest = df.loc[df['distance'].idxmin()]
+        min_distance = nearest['distance']
+
+        # Get name and address based on type
+        if type_name == "school":
+            name = nearest.get("school_name", "Unnamed school")
+            address = nearest.get("building_address", "Address not available")
+        elif type_name == "demolition":
+            name = nearest.get("account_name", "Unnamed demolition site")
+            address = nearest.get("address", "Address not available")
+        else:  # pothole
+            name = "Pothole"
+            address = nearest.get("incident_address", "Address not available")
+
+        return name, address, min_distance, type_name
+
+    # Fallback to the original method if columns are different
+    nearest = None
+    min_distance = float('inf')
 
     for _, row in df.iterrows():
         location = (row['latitude'], row['longitude'])
@@ -61,30 +96,64 @@ def find_nearest_location(point, df, type_name):
             address = nearest.get("incident_address", "Address not available")
 
         return name, address, min_distance, type_name
+
     return None, None, None, None
 
 
 def generate_warning_message(api_key, location_type, address, name):
+    """Generate a warning message using OpenAI API.
+
+    Args:
+        api_key (str): OpenAI API key
+        location_type (str): Type of location
+        address (str): Address of the location
+        name (str): Name of the location
+
+    Returns:
+        str: Generated warning message
+    """
     try:
+        # Initialize OpenAI client
         client = openai.OpenAI(api_key=api_key)
+
+        # Prepare a prompt that is clear and concise
+        prompt = (
+            f"Generate a brief warning message for a driver approaching {address}. "
+            f"There is an active {location_type} site operated by {name}. "
+            "Keep the message under 100 words, clear and cautionary."
+        )
+
+        # Make API call with optimized parameters
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": "You are an assistant that warns delivery drivers about hazards."},
-                {"role": "user",
-                 "content": f"Generate a warning message for a driver approaching {address}. There is an active {location_type} site operated by {name}. The message should be clear and cautionary."}
-            ]
+                {"role": "system", "content": "You are an assistant that creates concise driver warnings."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=150,
+            temperature=0.7
         )
-        return response.choices[0].message.content
+
+        return response.choices[0].message.content.strip()
     except Exception as e:
         st.error(f"Error generating message: {e}")
         return f"Caution! You are approaching a {location_type} site at {address}, operated by {name}."
 
 
 def text_to_audio(text, filename="warning.mp3"):
+    """Convert text to audio using gTTS.
+
+    Args:
+        text (str): Text to convert to speech
+        filename (str): Output filename
+
+    Returns:
+        str: Path to the audio file or None if error
+    """
     try:
         from gtts import gTTS
-        tts = gTTS(text=text, lang='en')
+        # Create gTTS object with optimized settings
+        tts = gTTS(text=text, lang='en', slow=False)
         tts.save(filename)
         return filename
     except Exception as e:
