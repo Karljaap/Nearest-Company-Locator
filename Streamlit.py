@@ -98,10 +98,48 @@ if 'map_clicked' not in st.session_state:
 if 'selected_point' not in st.session_state:
     st.session_state.selected_point = None
 
-# Streamlit UI
+# Add custom CSS for better styling
+st.markdown("""
+<style>
+    .stApp {
+        background-color: #f8f9fa;
+    }
+    .stButton button {
+        font-weight: bold;
+        border-radius: 6px;
+    }
+    .css-18e3th9 {
+        padding-top: 2rem;
+    }
+    h1 {
+        color: #1e3a8a;
+        text-align: center;
+        padding: 15px;
+        margin-bottom: 20px;
+        background-color: #e6f0ff;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    div[data-testid="stSidebar"] {
+        background-color: #f8f9fa;
+        border-right: 1px solid #e0e0e0;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Streamlit UI with better title
 st.title("Driver Warning System")
-st.sidebar.header("Settings")
+
+# Improved sidebar styling
+st.sidebar.markdown("""
+<div style="background-color:#f0f2f6; padding:10px; border-radius:10px; margin-bottom:15px">
+    <h2 style="color:#0e1117; font-size:1.5em; margin-bottom:10px">Settings</h2>
+</div>
+""", unsafe_allow_html=True)
+
+# API key input with apply button
 api_key = st.sidebar.text_input("Enter your OpenAI API Key", type="password")
+apply_key = st.sidebar.button("Apply API Key", use_container_width=True, key="apply_key_button")
 
 # Load data up front, not based on button click
 school_df, demolition_df, pothole_df = load_data()
@@ -151,23 +189,35 @@ if school_df is not None and demolition_df is not None and pothole_df is not Non
         nearest_location = nearest_all[0]
 
         if nearest_location[2] and nearest_location[2] <= 500:
-            st.success(
-                f"Warning: Near {nearest_location[0]} ({nearest_location[3]}) at {nearest_location[1]}. Distance: {nearest_location[2]:.2f}m")
+            # Style the warning with custom HTML
+            st.markdown(f"""
+            <div style="background-color:#ffe0e0; padding:15px; border-radius:10px; margin:15px 0; border-left:5px solid #ff0000">
+                <h3 style="color:#cf0000; margin:0 0 10px 0">⚠️ HAZARD ALERT</h3>
+                <p><strong>Location Type:</strong> {nearest_location[3].title()}</p>
+                <p><strong>Name:</strong> {nearest_location[0]}</p>
+                <p><strong>Address:</strong> {nearest_location[1]}</p>
+                <p><strong>Distance:</strong> {nearest_location[2]:.2f}m</p>
+            </div>
+            """, unsafe_allow_html=True)
 
             if api_key:
-                warning_message = generate_warning_message(api_key, nearest_location[3], nearest_location[1],
-                                                           nearest_location[0])
-                st.write("Generated message:")
+                with st.spinner("Generating detailed warning..."):
+                    warning_message = generate_warning_message(api_key, nearest_location[3], nearest_location[1],
+                                                               nearest_location[0])
+
+                st.markdown("<h3 style='margin-top:20px'>Generated Message:</h3>", unsafe_allow_html=True)
                 st.info(warning_message)
 
-                # Generate audio
+                # Generate audio with better UI
                 audio_file = text_to_audio(warning_message)
                 if audio_file:
+                    st.markdown("<h3 style='margin-top:20px'>Audio Alert:</h3>", unsafe_allow_html=True)
                     st.audio(audio_file, format="audio/mp3")
             else:
-                st.warning("Please enter your API Key to generate warnings.")
+                st.warning(
+                    "⚠️ Please enter your OpenAI API Key in the sidebar and click 'Apply API Key' to generate detailed warnings.")
         else:
-            st.info("No nearby warnings.")
+            st.info("✓ No nearby hazards detected within 500 meters of your selected location.")
 
     # Add button to reset selection
     if st.session_state.map_clicked:
