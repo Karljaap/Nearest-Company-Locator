@@ -1,3 +1,21 @@
+# Add the Apply API Key button with direct button style override
+apply_key = st.sidebar.button(
+    "Apply API Key",
+    key="apply_key_button",
+    help="Click to apply the API key"
+)
+
+# Add custom button styling
+st.sidebar.markdown("""
+<style>
+    div[data-testid="stSidebar"] button {
+        background-color: #fabfb7 !important;
+        color: #000000 !important;
+        font-weight: bold;
+        opacity: 1 !important;
+    }
+</style>
+""", unsafe_allow_html=True)
 import streamlit as st
 import pandas as pd
 import folium
@@ -98,36 +116,52 @@ if 'map_clicked' not in st.session_state:
 if 'selected_point' not in st.session_state:
     st.session_state.selected_point = None
 
-# Add custom CSS for better visibility using suggested colors
+# Add custom CSS to fix the white overlay issue and improve colors
 st.markdown("""
 <style>
     .stApp {
-        background-color: white;
+        background-color: #ffffff;
+        opacity: 1 !important;
+    }
+    .main .block-container {
+        opacity: 1 !important;
+        background-color: #ffffff;
     }
     .stButton button {
         border-radius: 4px;
+        opacity: 1 !important;
     }
     h1 {
         font-size: 28px;
         margin-bottom: 20px;
-        color: #000000;
-        background-color: #fdf9c4;
+        color: #000000 !important;
+        background-color: #fdf9c4 !important;
         padding: 10px;
         border-radius: 5px;
         font-weight: bold;
+        opacity: 1 !important;
     }
     div[data-testid="stSidebar"] {
-        background-color: white;
+        background-color: #1E1E1E !important;
+        opacity: 1 !important;
     }
     p, .stTextInput label, button, .stTextInput, div {
         color: #000000 !important;
+        opacity: 1 !important;
+    }
+    .css-6qob1r {
+        opacity: 1 !important;
+    }
+    .css-1544g2n {
+        opacity: 1 !important;
     }
     .stText {
-        background-color: #ffda9e;
+        background-color: #ffda9e !important;
         padding: 5px;
         border-radius: 3px;
         font-weight: bold;
         color: #000000 !important;
+        opacity: 1 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -135,12 +169,36 @@ st.markdown("""
 # Minimalist UI with properly colored title
 st.title("Driver Warning System")
 
-# Minimalist sidebar
+# Fix the sidebar styling
+st.sidebar.markdown("""
+<style>
+    div[data-testid="stSidebar"] {
+        background-color: #1E1E1E !important;
+    }
+    div[data-testid="stSidebar"] p, 
+    div[data-testid="stSidebar"] span, 
+    div[data-testid="stSidebar"] label, 
+    div[data-testid="stSidebar"] div {
+        color: #FFFFFF !important;
+    }
+    div[data-testid="stSidebar"] h1, 
+    div[data-testid="stSidebar"] h2, 
+    div[data-testid="stSidebar"] h3 {
+        color: #FFFFFF !important;
+    }
+    div[data-testid="stSidebar"] button {
+        background-color: #fabfb7 !important;
+        color: #000000 !important;
+        font-weight: bold;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Minimalist sidebar with clear text
 st.sidebar.header("Settings")
 
 # API key input with apply button
 api_key = st.sidebar.text_input("Enter your OpenAI API Key", type="password")
-apply_key = st.sidebar.button("Apply API Key", key="apply_key_button")
 
 # Load data up front, not based on button click
 school_df, demolition_df, pothole_df = load_data()
