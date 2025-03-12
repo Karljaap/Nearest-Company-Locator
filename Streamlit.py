@@ -118,7 +118,7 @@ def generate_warning_message(api_key, location_type, address, name):
 
         # Prepare a prompt that is clear and concise
         prompt = (
-            f"Generate a brief warning message for a driver approaching {address}. "
+            f"Generate a brief warning message for a food delivery driver approaching {address}. "
             f"There is an active {location_type} site operated by {name}. "
             "Keep the message under 100 words, clear and cautionary."
         )
@@ -167,111 +167,10 @@ if 'map_clicked' not in st.session_state:
 if 'selected_point' not in st.session_state:
     st.session_state.selected_point = None
 
-# Add custom CSS to fix the white overlay issue and improve colors
-st.markdown("""
-<style>
-    .stApp {
-        background-color: #ffffff;
-        opacity: 1 !important;
-    }
-    .main .block-container {
-        opacity: 1 !important;
-        background-color: #ffffff;
-    }
-    .stButton button {
-        border-radius: 4px;
-        opacity: 1 !important;
-    }
-    h1 {
-        font-size: 28px;
-        margin-bottom: 20px;
-        color: #000000 !important;
-        background-color: #fdf9c4 !important;
-        padding: 10px;
-        border-radius: 5px;
-        font-weight: bold;
-        opacity: 1 !important;
-    }
-    div[data-testid="stSidebar"] {
-        background-color: #1E1E1E !important;
-        opacity: 1 !important;
-    }
-    p, .stTextInput label, button, .stTextInput, div {
-        color: #000000 !important;
-        opacity: 1 !important;
-    }
-    .css-6qob1r {
-        opacity: 1 !important;
-    }
-    .css-1544g2n {
-        opacity: 1 !important;
-    }
-    .stText {
-        background-color: #ffda9e !important;
-        padding: 5px;
-        border-radius: 3px;
-        font-weight: bold;
-        color: #000000 !important;
-        opacity: 1 !important;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# Minimalist UI with properly colored title
+# Main application title
 st.title("Driver Warning System")
 
-# Fix the sidebar styling - improve visibility with stronger colors
-st.sidebar.markdown("""
-<style>
-    div[data-testid="stSidebar"] {
-        background-color: #2C2C2C !important;
-    }
-    div[data-testid="stSidebar"] p, 
-    div[data-testid="stSidebar"] span,  
-    div[data-testid="stSidebar"] div {
-        color: #FFFFFF !important;
-    }
-    div[data-testid="stSidebar"] label {
-        color: #FFFFFF !important;
-        font-weight: bold !important;
-        font-size: 16px !important;
-    }
-    div[data-testid="stSidebar"] h1, 
-    div[data-testid="stSidebar"] h2, 
-    div[data-testid="stSidebar"] h3 {
-        color: #ffda9e !important;
-        font-weight: bold !important;
-        font-size: 20px !important;
-        background-color: #333333 !important;
-        padding: 10px !important;
-        border-radius: 5px !important;
-        margin-bottom: 15px !important;
-    }
-    div[data-testid="stSidebar"] button {
-        background-color: #fabfb7 !important;
-        color: #000000 !important;
-        font-weight: bold !important;
-        font-size: 16px !important;
-        padding: 8px 16px !important;
-        border: 2px solid #000000 !important;
-        border-radius: 5px !important;
-        display: block !important;
-        width: 100% !important;
-        margin-top: 10px !important;
-    }
-    /* Style for password input */
-    div[data-testid="stSidebar"] input[type="password"] {
-        background-color: #FFFFFF !important;
-        color: #000000 !important;
-        border: 2px solid #fabfb7 !important;
-        padding: 8px !important;
-        font-size: 16px !important;
-        border-radius: 5px !important;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# Minimalist sidebar with clear text
+# Sidebar for settings
 st.sidebar.header("Settings")
 
 # API key input with apply button
@@ -287,7 +186,6 @@ if school_df is not None and demolition_df is not None and pothole_df is not Non
     map_object = folium.Map(location=base_location, zoom_start=14)
 
     # Add reference points
-
     for _, row in school_df.iterrows():
         folium.CircleMarker(
             location=[row['latitude'], row['longitude']],
@@ -302,7 +200,7 @@ if school_df is not None and demolition_df is not None and pothole_df is not Non
     for _, row in demolition_df.iterrows():
         folium.CircleMarker(
             location=[row['latitude'], row['longitude']],
-            radius=5,  # Adjusted size
+            radius=5,
             color='darkred',
             fill=True,
             fill_color='red',
@@ -313,7 +211,7 @@ if school_df is not None and demolition_df is not None and pothole_df is not Non
     for _, row in pothole_df.iterrows():
         folium.CircleMarker(
             location=[row['latitude'], row['longitude']],
-            radius=5,  # Adjusted size
+            radius=5,
             color='darkorange',
             fill=True,
             fill_color='orange',
@@ -347,48 +245,30 @@ if school_df is not None and demolition_df is not None and pothole_df is not Non
         nearest_location = nearest_all[0]
 
         if nearest_location[2] and nearest_location[2] <= 500:
-            # Improved HAZARD ALERT with better color contrast for visibility
-            st.markdown(f"""
-            <div style="background-color:#ffebeb; padding:15px; border-radius:0px; margin:15px 0; border-left:5px solid #d9000d">
-                <div style="background-color:#1a53a4; padding:8px 12px; display:inline-block; margin-bottom:15px">
-                    <h3 style="color:white; margin:0; display:flex; align-items:center; font-size:18px; letter-spacing:0.5px">
-                        <span style="margin-right:10px; font-size:20px">⚠️</span> HAZARD ALERT
-                    </h3>
-                </div>
-                <p style="color:#000000; font-size:16px; margin:10px 0"><strong>Location Type:</strong> {nearest_location[3].title()}</p>
-                <p style="color:#000000; font-size:16px; margin:10px 0"><strong>Name:</strong> {nearest_location[0]}</p>
-                <p style="color:#000000; font-size:16px; margin:10px 0"><strong>Address:</strong> {nearest_location[1]}</p>
-                <p style="color:#000000; font-size:16px; margin:10px 0"><strong>Distance:</strong> {nearest_location[2]:.2f}m</p>
-            </div>
-            """, unsafe_allow_html=True)
+            st.warning("HAZARD ALERT")
+
+            st.write(f"**Location Type:** {nearest_location[3].title()}")
+            st.write(f"**Name:** {nearest_location[0]}")
+            st.write(f"**Address:** {nearest_location[1]}")
+            st.write(f"**Distance:** {nearest_location[2]:.2f}m")
 
             if api_key:
                 with st.spinner("Generating warning..."):
                     warning_message = generate_warning_message(api_key, nearest_location[3], nearest_location[1],
                                                                nearest_location[0])
 
-                st.markdown("<h3 style='color:#1a53a4; margin-top:25px; font-size:18px'>Generated Message</h3>",
-                            unsafe_allow_html=True)
-                st.markdown(f"""
-                <div style="background-color:#e6f0ff; padding:15px; border:1px solid #c2d8f7; border-radius:4px">
-                    <p style="color:#003366; font-size:16px; line-height:1.5">{warning_message}</p>
-                </div>
-                """, unsafe_allow_html=True)
+                st.subheader("Generated Message")
+                st.info(warning_message)
 
                 # Generate audio
                 audio_file = text_to_audio(warning_message)
                 if audio_file:
-                    st.markdown("<h3 style='color:#1a53a4; margin-top:25px; font-size:18px'>Audio Alert</h3>",
-                                unsafe_allow_html=True)
+                    st.subheader("Audio Alert")
                     st.audio(audio_file, format="audio/mp3")
             else:
                 st.warning("Please enter your OpenAI API Key to generate detailed warnings.")
         else:
-            st.markdown("""
-            <div style="background-color: #fdf9c4; padding: 15px; border-radius: 5px; margin:15px 0;">
-                <p style="color: #000000; font-weight: bold;">No nearby hazards detected within 500 meters.</p>
-            </div>
-            """, unsafe_allow_html=True)
+            st.success("No nearby hazards detected within 500 meters.")
 
     # Add button to reset selection
     if st.session_state.map_clicked:
