@@ -98,7 +98,7 @@ if 'map_clicked' not in st.session_state:
 if 'selected_point' not in st.session_state:
     st.session_state.selected_point = None
 
-# Add custom CSS for minimalist styling
+# Add custom CSS for better visibility using suggested colors
 st.markdown("""
 <style>
     .stApp {
@@ -110,14 +110,29 @@ st.markdown("""
     h1 {
         font-size: 28px;
         margin-bottom: 20px;
+        color: #000000;
+        background-color: #fdf9c4;
+        padding: 10px;
+        border-radius: 5px;
+        font-weight: bold;
     }
     div[data-testid="stSidebar"] {
         background-color: white;
     }
+    p, .stTextInput label, button, .stTextInput, div {
+        color: #000000 !important;
+    }
+    .stText {
+        background-color: #ffda9e;
+        padding: 5px;
+        border-radius: 3px;
+        font-weight: bold;
+        color: #000000 !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# Minimalist UI with simple title
+# Minimalist UI with properly colored title
 st.title("Driver Warning System")
 
 # Minimalist sidebar
@@ -212,7 +227,11 @@ if school_df is not None and demolition_df is not None and pothole_df is not Non
             else:
                 st.warning("Please enter your OpenAI API Key to generate detailed warnings.")
         else:
-            st.info("No nearby hazards detected within 500 meters.")
+            st.markdown("""
+            <div style="background-color: #fdf9c4; padding: 15px; border-radius: 5px; margin:15px 0;">
+                <p style="color: #000000; font-weight: bold;">No nearby hazards detected within 500 meters.</p>
+            </div>
+            """, unsafe_allow_html=True)
 
     # Add button to reset selection
     if st.session_state.map_clicked:
