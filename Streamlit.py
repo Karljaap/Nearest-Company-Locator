@@ -2,10 +2,10 @@ import streamlit as st
 import pandas as pd
 import folium
 import geopy.distance
-import openai
 from streamlit_folium import st_folium
 
-# Función para cargar datos
+# Cargar los datos solo una vez
+@st.cache_data
 def load_data():
     files = {
         "school": "school.csv",
@@ -24,7 +24,9 @@ def load_data():
             return None, None, None
     return dataframes["school"], dataframes["demolition"], dataframes["pothole"]
 
-# Inicializar sesión para mantener la última ubicación
+# Inicializar variables en la sesión
+if "mapa" not in st.session_state:
+    st.session_state["mapa"] = None
 if "last_location" not in st.session_state:
     st.session_state["last_location"] = None
 
@@ -37,39 +39,40 @@ if st.sidebar.button("Ejecutar Programa"):
     school_df, demolition_df, pothole_df = load_data()
 
     if school_df is not None and demolition_df is not None and pothole_df is not None:
-        # Verificar si el mapa ya está en session_state para evitar reinicios
-        if "mapa" not in st.session_state:
+        # Si el mapa aún no ha sido creado, inicializarlo
+        if st.session_state["mapa"] is None:
             base_location = (40.700000, -73.900000)
-            st.session_state["mapa"] = folium.Map(location=base_location, zoom_start=14)
+            mapa = folium.Map(location=base_location, zoom_start=14)
 
-            # Agregar puntos de referencia
+            # Agregar marcadores
             for _, row in school_df.iterrows():
                 folium.Marker([row['latitude'], row['longitude']],
                               tooltip=row.get('school_name', 'Escuela sin nombre'),
-                              icon=folium.Icon(color="blue")).add_to(st.session_state["mapa"])
+                              icon=folium.Icon(color="blue")).add_to(mapa)
             for _, row in demolition_df.iterrows():
                 folium.Marker([row['latitude'], row['longitude']],
                               tooltip=row.get('account_name', 'Demolición sin nombre'),
-                              icon=folium.Icon(color="red")).add_to(st.session_state["mapa"])
+                              icon=folium.Icon(color="red")).add_to(mapa)
             for _, row in pothole_df.iterrows():
                 folium.Marker([row['latitude'], row['longitude']],
                               tooltip="Bache",
-                              icon=folium.Icon(color="orange")).add_to(st.session_state["mapa"])
+                              icon=folium.Icon(color="orange")).add_to(mapa)
 
-        # Mostrar el mapa interactivo
+            # Guardar el mapa en session_state
+            st.session_state["mapa"] = mapa
+
+        # Mostrar el mapa sin reiniciarlo
         selected_point = st_folium(st.session_state["mapa"], height=500, key="mapa")
 
-        # Extraer ubicación seleccionada
+        # Si se selecciona un punto, almacenarlo
         if selected_point and selected_point.get('last_clicked'):
             lat = selected_point['last_clicked']['lat']
             lon = selected_point['last_clicked']['lng']
-            st.session_state["last_location"] = (lat, lon)  # Guardar en session_state
+            st.session_state["last_location"] = (lat, lon)
 
-        # Usar la última ubicación seleccionada
+        # Mostrar la última ubicación seleccionada
         if st.session_state["last_location"]:
             lat, lon = st.session_state["last_location"]
             st.write(f"Ubicación seleccionada: {lat}, {lon}")
-
-            # Aquí puedes agregar la lógica para buscar ubicaciones cercanas
         else:
             st.info("Haz clic en el mapa para seleccionar una ubicación.")
