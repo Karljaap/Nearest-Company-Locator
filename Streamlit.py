@@ -26,21 +26,46 @@ def load_data():
         try:
             df = pd.read_csv(file)
             df.columns = df.columns.str.strip().str.lower()
+
+            # Asegúrate de que existan las columnas necesarias
             if key == "school":
-                df.rename(columns={"school_name": "name", "building_address": "address"}, inplace=True)
+                # Renombra school_name a name
+                if 'school_name' in df.columns:
+                    df.rename(columns={"school_name": "name"}, inplace=True)
+                else:
+                    # Si no existe la columna name, créala
+                    df['name'] = df['school_name'] if 'school_name' in df.columns else "Escuela sin nombre"
+
+                # Renombra building_address a address
+                if 'building_address' in df.columns:
+                    df.rename(columns={"building_address": "address"}, inplace=True)
+                else:
+                    df['address'] = "Dirección no disponible"
+
             elif key == "demolition":
-                df.rename(columns={"account_name": "name"}, inplace=True)
+                # Renombra account_name a name
+                if 'account_name' in df.columns:
+                    df.rename(columns={"account_name": "name"}, inplace=True)
+                else:
+                    df['name'] = "Demolición sin nombre"
+
+                # Asegúrate de que exista la columna address
+                if 'address' not in df.columns:
+                    df['address'] = df['address'] if 'address' in df.columns else "Dirección no disponible"
+
             elif key == "pothole":
-                df.rename(columns={"incident_address": "address"}, inplace=True)
+                # Crea columna name para pothole
+                df['name'] = "Bache"
 
-            # Ensure 'name' column exists
-            if 'name' not in df.columns:
-                df['name'] = f"Ubicación {key}"
+                # Renombra incident_address a address
+                if 'incident_address' in df.columns:
+                    df.rename(columns={"incident_address": "address"}, inplace=True)
+                else:
+                    df['address'] = "Dirección no disponible"
 
-            # Ensure required columns exist
-            required_cols = ['latitude', 'longitude']
-            if not all(col in df.columns for col in required_cols):
-                st.error(f"Error: El archivo {file} no tiene las columnas necesarias (latitude, longitude).")
+            # Verifica las columnas de latitud y longitud
+            if not {'latitude', 'longitude'}.issubset(df.columns):
+                st.error(f"Error: El archivo {file} no tiene las columnas de latitud y longitud.")
                 return None, None, None
 
             dataframes[key] = df
@@ -67,7 +92,7 @@ def find_nearest_location(point, df, type_name):
             nearest = row
 
     if nearest is not None:
-        # Use get method to safely access columns that might not exist
+        # Usa get method para acceder a columnas que podrían no existir
         name = nearest.get('name', f'Ubicación {type_name}')
         address = nearest.get('address', 'Dirección no disponible')
         return name, address, min_distance, type_name
@@ -103,11 +128,23 @@ if st.sidebar.button("Ejecutar Programa"):
     school_df, demolition_df, pothole_df = load_data()
 
     if school_df is not None and demolition_df is not None and pothole_df is not None:
+        # Muestra las primeras filas para depuración
+        with st.expander("Ver datos cargados (depuración)"):
+            st.write("Columnas en school_df:", school_df.columns.tolist())
+            st.write("Columnas en demolition_df:", demolition_df.columns.tolist())
+            st.write("Columnas en pothole_df:", pothole_df.columns.tolist())
+            st.write("Primeras filas de school_df:")
+            st.write(school_df.head(2))
+            st.write("Primeras filas de demolition_df:")
+            st.write(demolition_df.head(2))
+            st.write("Primeras filas de pothole_df:")
+            st.write(pothole_df.head(2))
+
         # Crear mapa base
         base_location = (40.700000, -73.900000)
         mapa = folium.Map(location=base_location, zoom_start=14)
 
-        # Agregar puntos de referencia - Fix here with safe access using .get()
+        # Agregar puntos de referencia
         for _, row in school_df.iterrows():
             folium.Marker([row['latitude'], row['longitude']],
                           tooltip=row.get('name', 'Escuela sin nombre'),
@@ -118,7 +155,7 @@ if st.sidebar.button("Ejecutar Programa"):
                           icon=folium.Icon(color="red")).add_to(mapa)
         for _, row in pothole_df.iterrows():
             folium.Marker([row['latitude'], row['longitude']],
-                          tooltip=row.get('name', 'Bache sin nombre'),
+                          tooltip=row.get('name', 'Bache'),
                           icon=folium.Icon(color="orange")).add_to(mapa)
 
         # Mostrar mapa interactivo
