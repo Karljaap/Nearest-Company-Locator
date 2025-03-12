@@ -175,18 +175,18 @@ if school_df is not None and demolition_df is not None and pothole_df is not Non
         nearest_location = nearest_all[0]
 
         if nearest_location[2] and nearest_location[2] <= 500:
-            # Keep the HAZARD ALERT section as it was requested to be kept
+            # Improved HAZARD ALERT with better color contrast for visibility
             st.markdown(f"""
-            <div style="background-color:#ffe0e0; padding:15px; border-radius:0px; margin:15px 0; border-left:5px solid #ff0000">
-                <div style="background-color:#4169E1; padding:5px; display:inline-block; margin-bottom:10px">
-                    <h3 style="color:white; margin:0; display:flex; align-items:center">
-                        <span style="margin-right:10px">⚠️</span> HAZARD ALERT
+            <div style="background-color:#ffebeb; padding:15px; border-radius:0px; margin:15px 0; border-left:5px solid #d9000d">
+                <div style="background-color:#1a53a4; padding:8px 12px; display:inline-block; margin-bottom:15px">
+                    <h3 style="color:white; margin:0; display:flex; align-items:center; font-size:18px; letter-spacing:0.5px">
+                        <span style="margin-right:10px; font-size:20px">⚠️</span> HAZARD ALERT
                     </h3>
                 </div>
-                <p><strong>Location Type:</strong> {nearest_location[3].title()}</p>
-                <p><strong>Name:</strong> {nearest_location[0]}</p>
-                <p><strong>Address:</strong> {nearest_location[1]}</p>
-                <p><strong>Distance:</strong> {nearest_location[2]:.2f}m</p>
+                <p style="color:#000000; font-size:16px; margin:10px 0"><strong>Location Type:</strong> {nearest_location[3].title()}</p>
+                <p style="color:#000000; font-size:16px; margin:10px 0"><strong>Name:</strong> {nearest_location[0]}</p>
+                <p style="color:#000000; font-size:16px; margin:10px 0"><strong>Address:</strong> {nearest_location[1]}</p>
+                <p style="color:#000000; font-size:16px; margin:10px 0"><strong>Distance:</strong> {nearest_location[2]:.2f}m</p>
             </div>
             """, unsafe_allow_html=True)
 
@@ -195,13 +195,19 @@ if school_df is not None and demolition_df is not None and pothole_df is not Non
                     warning_message = generate_warning_message(api_key, nearest_location[3], nearest_location[1],
                                                                nearest_location[0])
 
-                st.subheader("Generated Message")
-                st.info(warning_message)
+                st.markdown("<h3 style='color:#1a53a4; margin-top:25px; font-size:18px'>Generated Message</h3>",
+                            unsafe_allow_html=True)
+                st.markdown(f"""
+                <div style="background-color:#e6f0ff; padding:15px; border:1px solid #c2d8f7; border-radius:4px">
+                    <p style="color:#003366; font-size:16px; line-height:1.5">{warning_message}</p>
+                </div>
+                """, unsafe_allow_html=True)
 
                 # Generate audio
                 audio_file = text_to_audio(warning_message)
                 if audio_file:
-                    st.subheader("Audio Alert")
+                    st.markdown("<h3 style='color:#1a53a4; margin-top:25px; font-size:18px'>Audio Alert</h3>",
+                                unsafe_allow_html=True)
                     st.audio(audio_file, format="audio/mp3")
             else:
                 st.warning("Please enter your OpenAI API Key to generate detailed warnings.")
