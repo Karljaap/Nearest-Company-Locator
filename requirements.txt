@@ -1,8 +1,9 @@
 streamlit
 pandas
-geopy
 folium
+geopy
 openai
 numpy
-streamlit_folium
+streamlit-folium
 pydub
+gtts
