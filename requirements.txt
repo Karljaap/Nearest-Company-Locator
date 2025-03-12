@@ -5,3 +5,6 @@ streamlit
 streamlit-folium
 pandas
 matplotlib
+geopy
+openai
+numpy
