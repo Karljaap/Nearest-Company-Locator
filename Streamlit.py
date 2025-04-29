@@ -91,18 +91,24 @@ def text_to_audio(text, filename="warning.mp3"):
         st.error(f"Error generating audio: {e}")
         return None
 
+# --- Estado inicial de sesión ---
 if 'map_clicked' not in st.session_state:
     st.session_state.map_clicked = False
 if 'selected_point' not in st.session_state:
     st.session_state.selected_point = None
+if 'start_time' not in st.session_state:
+    st.session_state.start_time = None
 
+# --- Título y Configuración Sidebar ---
 st.title("Driver Warning System")
 st.sidebar.header("Settings")
 api_key = st.sidebar.text_input("Enter your OpenAI API Key", type="password")
 st.sidebar.button("Apply API Key")
 
+# --- Cargar Data ---
 school_df, demolition_df, pothole_df = load_data()
 
+# --- Crear Mapa ---
 if school_df is not None and demolition_df is not None and pothole_df is not None:
     base_location = (40.700000, -73.900000)
     map_object = folium.Map(location=base_location, zoom_start=14)
@@ -145,7 +151,9 @@ if school_df is not None and demolition_df is not None and pothole_df is not Non
     if map_data and 'last_clicked' in map_data:
         st.session_state.selected_point = map_data['last_clicked']
         st.session_state.map_clicked = True
+        st.session_state.start_time = time.time()  # <-- Mido el tiempo al clickear
 
+    # --- Procesamiento luego de seleccionar punto ---
     if st.session_state.map_clicked and st.session_state.selected_point:
         lat = st.session_state.selected_point['lat']
         lon = st.session_state.selected_point['lng']
@@ -170,13 +178,12 @@ if school_df is not None and demolition_df is not None and pothole_df is not Non
             st.write(f"**Distance:** {nearest_location[2]:.2f}m")
 
             if api_key:
-                start_time = time.time()
                 with st.spinner("Generating warning..."):
                     warning_message = generate_warning_message(api_key, nearest_location[3],
                                                                nearest_location[1], nearest_location[0])
                     audio_file = text_to_audio(warning_message)
-                end_time = time.time()
-                elapsed_time = end_time - start_time
+
+                elapsed_time = time.time() - st.session_state.start_time  # <-- Termina la medición aquí
 
                 st.subheader("Generated Message")
                 st.info(warning_message)
@@ -185,16 +192,18 @@ if school_df is not None and demolition_df is not None and pothole_df is not Non
                     st.subheader("Audio Alert")
                     st.audio(audio_file, format="audio/mp3")
 
-                st.success(f"Total processing time: {elapsed_time:.2f} seconds")
+                st.success(f"Total processing time (click to complete generation): {elapsed_time:.2f} seconds")
             else:
                 st.warning("Please enter your OpenAI API Key to generate detailed warnings.")
         else:
             st.success("No nearby hazards detected within 500 meters.")
 
+    # --- Botón para resetear selección ---
     if st.session_state.map_clicked:
         if st.button("Reset Selection"):
             st.session_state.map_clicked = False
             st.session_state.selected_point = None
+            st.session_state.start_time = None
             st.experimental_rerun()
 else:
     st.error("Failed to load necessary data files. Please check if all required CSV files exist.")
