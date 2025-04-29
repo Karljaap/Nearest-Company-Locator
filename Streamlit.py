@@ -91,6 +91,9 @@ def text_to_audio(text, filename="warning.mp3"):
         st.error(f"Error generating audio: {e}")
         return None
 
+# Start timing for full app load
+app_start_time = time.time()
+
 if 'map_clicked' not in st.session_state:
     st.session_state.map_clicked = False
 if 'selected_point' not in st.session_state:
@@ -185,11 +188,15 @@ if school_df is not None and demolition_df is not None and pothole_df is not Non
                     st.subheader("Audio Alert")
                     st.audio(audio_file, format="audio/mp3")
 
-                st.success(f"Tiempo total de procesamiento: {elapsed_time:.2f} segundos")
+                st.markdown(f"### ⏱️ Tiempo total de procesamiento: **{elapsed_time:.2f} segundos**")
             else:
                 st.warning("Please enter your OpenAI API Key to generate detailed warnings.")
         else:
             st.success("No nearby hazards detected within 500 meters.")
+
+        app_end_time = time.time()
+        total_app_time = app_end_time - app_start_time
+        st.markdown(f"### 🕒 Tiempo total desde inicio de app: **{total_app_time:.2f} segundos**")
 
     if st.session_state.map_clicked:
         if st.button("Reset Selection"):
